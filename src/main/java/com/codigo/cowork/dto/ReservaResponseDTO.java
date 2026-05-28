@@ -1,6 +1,8 @@
 package com.codigo.cowork.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.time.LocalDate;
 import java.time.LocalTime;
 
@@ -15,6 +17,8 @@ public record ReservaResponseDTO (
         LocalTime horaInicio,
         @JsonFormat(pattern = "HH:mm")
         LocalTime horaFin,
-        String estado
+        String estado,
+        @JsonIgnore String passwordTnterno,
+        @JsonIgnore SalaResponseDTO sala
 ){
 }

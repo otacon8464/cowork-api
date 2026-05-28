@@ -28,14 +28,19 @@ public class ReservaService {
                 .filter(r -> (estado == null || estado.isBlank() || r.getEstado().equalsIgnoreCase(estado)))
                 .filter(r -> (fecha == null || r.getFecha().equals(fecha)))
                 .filter(r -> (salaId == null || r.getSalaId().equals(salaId)))
-                .map(ReservaMapper::toDto)
+                .map(ReservaMapper::toDto) // Ahora vuelve a funcionar correctamente
                 .toList();
     }
 
     public ReservaResponseDTO crear(ReservaRequestDTO dto) {
-        if (salaRepository.findById(dto.salaId()).isPresent()) {
-                throw  new IllegalArgumentException("Sala no encontrada");
+        // Validación: la sala debe existir
+        salaRepository.findById(dto.salaId())
+                .orElseThrow(() -> new IllegalArgumentException("Sala no encontrada"));
+
+        if (existeReservaEnFecha(dto.salaId(), dto.fecha())) {
+            throw new IllegalStateException("La sala ya tiene una reserva para esta fecha");
         }
+
         Reserva reserva = ReservaMapper.toEntity(dto);
         reserva.setSalaId(dto.salaId());
         reserva.setEstado("PENDIENTE");
@@ -44,21 +49,22 @@ public class ReservaService {
     }
 
     public Optional<ReservaResponseDTO> cambiarEstado(Long id, String nuevoEstado) {
-        String estadoUpper = nuevoEstado.toUpperCase();
-        if (!List.of("PENDIENTE", "CONFIRMADA", "CANCELADA").contains(estadoUpper)) {
-            throw new IllegalArgumentException("Estado inválido");
-        }
-
         return reservaRepository.findById(id).map(reserva -> {
-            reserva.setEstado(estadoUpper);
+            reserva.setEstado(nuevoEstado.toUpperCase());
             return ReservaMapper.toDto(reservaRepository.save(reserva));
         });
     }
 
-    public boolean eliminar(Long id) {
-        return reservaRepository.findById(id).map(r -> {
-            reservaRepository.deleteById(id);
-            return true;
-        }).orElse(false);
+    public boolean existeReservaEnFecha(Long salaId, LocalDate fecha) {
+        return reservaRepository.findAll().stream()
+                .anyMatch(r -> r.getSalaId().equals(salaId) && r.getFecha().equals(fecha));
+    }
+
+    public Optional<ReservaResponseDTO> buscarPorId(Long id) {
+        return reservaRepository.findById(id).map(ReservaMapper::toDto);
+    }
+
+    public void eliminar(Long id) {
+        reservaRepository.deleteById(id);
     }
 }
