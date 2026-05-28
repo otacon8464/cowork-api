@@ -36,7 +36,6 @@ public class SalaService {
     public SalaResponseDTO crear(SalaRequestDTO dto) {
         Sala sala = SalaMapper.toEntity(dto);
         sala.setActiva(true);
-
         Sala guardada = salaRepository.save(sala);
         return SalaMapper.toDto(guardada);
     }
@@ -48,15 +47,18 @@ public class SalaService {
             existente.setCapacidad(dto.capacidad());
             existente.setUbicacion(dto.ubicacion());
 
+            // Guardamos los cambios
             Sala actualizada = salaRepository.save(existente);
             return SalaMapper.toDto(actualizada);
         });
     }
 
     public boolean eliminar(Long id) {
-        Optional<Sala> salaOpt = salaRepository.findById(id);
-        if (salaOpt.isPresent()) {
+        // Verificamos si existe antes de proceder
+        if (salaRepository.findById(id).isPresent()) {
+            // R9: Eliminación en cascada (Eliminamos primero reservas asociadas)
             reservaRepository.deleteBySalaId(id);
+            // Eliminamos la sala
             salaRepository.deleteById(id);
             return true;
         }

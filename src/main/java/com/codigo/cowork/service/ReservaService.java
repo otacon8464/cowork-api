@@ -4,10 +4,10 @@ import com.codigo.cowork.dto.ReservaRequestDTO;
 import com.codigo.cowork.dto.ReservaResponseDTO;
 import com.codigo.cowork.mapper.ReservaMapper;
 import com.codigo.cowork.model.Reserva;
-import com.codigo.cowork.model.Sala;
 import com.codigo.cowork.repository.ReservaRepository;
 import com.codigo.cowork.repository.SalaRepository;
 import org.springframework.stereotype.Service;
+
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -32,32 +32,33 @@ public class ReservaService {
                 .toList();
     }
 
-    public Optional<ReservaResponseDTO> obtenerPorId(Long id) {
-        return reservaRepository.findById(id).map(ReservaMapper::toDto);
-    }
-
     public ReservaResponseDTO crear(ReservaRequestDTO dto) {
-        Sala sala = salaRepository.findById(dto.salaId())
-                .orElseThrow(() -> new IllegalArgumentException("La sala especificada no existe."));
-
+        if (salaRepository.findById(dto.salaId()).isPresent()) {
+                throw  new IllegalArgumentException("Sala no encontrada");
+        }
         Reserva reserva = ReservaMapper.toEntity(dto);
+        reserva.setSalaId(dto.salaId());
         reserva.setEstado("PENDIENTE");
+
         return ReservaMapper.toDto(reservaRepository.save(reserva));
     }
 
     public Optional<ReservaResponseDTO> cambiarEstado(Long id, String nuevoEstado) {
-        return reservaRepository.findById(id).map(existente -> {
-            existente.setEstado(nuevoEstado.toUpperCase());
-            reservaRepository.save(existente);
-            return ReservaMapper.toDto(existente);
+        String estadoUpper = nuevoEstado.toUpperCase();
+        if (!List.of("PENDIENTE", "CONFIRMADA", "CANCELADA").contains(estadoUpper)) {
+            throw new IllegalArgumentException("Estado inválido");
+        }
+
+        return reservaRepository.findById(id).map(reserva -> {
+            reserva.setEstado(estadoUpper);
+            return ReservaMapper.toDto(reservaRepository.save(reserva));
         });
     }
 
     public boolean eliminar(Long id) {
-        if (reservaRepository.findById(id).isPresent()) {
+        return reservaRepository.findById(id).map(r -> {
             reservaRepository.deleteById(id);
             return true;
-        }
-        return false;
+        }).orElse(false);
     }
 }

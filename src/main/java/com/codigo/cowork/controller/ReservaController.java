@@ -7,6 +7,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import java.time.LocalDate;
 import java.util.List;
 
@@ -21,11 +22,11 @@ public class ReservaController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ReservaResponseDTO>> listarConFiltros(
+    public List<ReservaResponseDTO> listarConFiltros(
             @RequestParam(required = false) String estado,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha,
             @RequestParam(required = false) Long salaId) {
-        return ResponseEntity.ok(reservaService.obtenerConFiltros(estado, fecha, salaId));
+        return reservaService.obtenerConFiltros(estado, fecha, salaId);
     }
 
     @PostMapping
@@ -34,9 +35,14 @@ public class ReservaController {
     }
 
     @PutMapping("/{id}/estado")
-    public ResponseEntity<ReservaResponseDTO> cambiarEstado(@PathVariable Long id, @RequestParam String nuevoEstado) {
+    public ReservaResponseDTO cambiarEstado(@PathVariable Long id, @RequestParam String nuevoEstado) {
         return reservaService.cambiarEstado(id, nuevoEstado)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .orElseThrow(() -> new RuntimeException("Reserva no encontrada"));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+        reservaService.eliminar(id);
+        return ResponseEntity.noContent().build();
     }
 }
